@@ -508,6 +508,9 @@ anv_GetPhysicalDeviceVideoCapabilitiesKHR(VkPhysicalDevice physicalDevice,
 
       if (ext) {
          ext->flags = VK_VIDEO_ENCODE_H265_CAPABILITY_PER_PICTURE_TYPE_MIN_MAX_QP_BIT_KHR;
+         /* TODO: Only verified on Xe2 so far. */
+         if (pdevice->info.verx10 >= 200)
+            ext->flags |= VK_VIDEO_ENCODE_H265_CAPABILITY_MULTIPLE_SLICE_SEGMENTS_PER_TILE_BIT_KHR;
          ext->maxLevelIdc = STD_VIDEO_H265_LEVEL_IDC_5_1;
          ext->ctbSizes = VK_VIDEO_ENCODE_H265_CTB_SIZE_32_BIT_KHR |
                          VK_VIDEO_ENCODE_H265_CTB_SIZE_64_BIT_KHR;
