@@ -1966,21 +1966,17 @@ void genX(CmdEndQueryIndexedEXT)(
       emit_query_mi_flush_availability(cmd_buffer, query_addr, true);
       break;
 
-#if GFX_VER < 11
-#define MFC_BITSTREAM_BYTECOUNT_FRAME_REG       0x128A0
-#define HCP_BITSTREAM_BYTECOUNT_FRAME_REG       0x1E9A0
-#elif GFX_VER >= 11
-#define MFC_BITSTREAM_BYTECOUNT_FRAME_REG       0x1C08A0
-#define HCP_BITSTREAM_BYTECOUNT_FRAME_REG       0x1C28A0
-#endif
-
    case VK_QUERY_TYPE_VIDEO_ENCODE_FEEDBACK_KHR: {
+      if (pool->codec & (VK_VIDEO_CODEC_OPERATION_ENCODE_H264_BIT_KHR |
+                         VK_VIDEO_CODEC_OPERATION_ENCODE_H265_BIT_KHR)) {
+         genX(video_encode_store_bitstream_size)(&cmd_buffer->batch, pool->codec,
+                                                 anv_address_add(query_addr, 8));
+         emit_query_mi_availability(&b, query_addr, true);
+         break;
+      }
+
       struct mi_value val;
-      if (pool->codec & VK_VIDEO_CODEC_OPERATION_ENCODE_H264_BIT_KHR) {
-         val = mi_reg32(MFC_BITSTREAM_BYTECOUNT_FRAME_REG);
-      } else if (pool->codec & VK_VIDEO_CODEC_OPERATION_ENCODE_H265_BIT_KHR) {
-         val = mi_reg32(HCP_BITSTREAM_BYTECOUNT_FRAME_REG);
-      } else if (pool->codec & VK_VIDEO_CODEC_OPERATION_ENCODE_AV1_BIT_KHR) {
+      if (pool->codec & VK_VIDEO_CODEC_OPERATION_ENCODE_AV1_BIT_KHR) {
          /* AV1 BITSTREAM_BYTECOUNT_TILE is per-tile; the frame total (all
           * tiles) is the running sum accumulated into the encode scratch
           * dword during CmdEncodeVideoKHR. */
