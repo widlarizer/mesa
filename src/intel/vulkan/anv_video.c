@@ -537,6 +537,14 @@ anv_GetPhysicalDeviceVideoCapabilitiesKHR(VkPhysicalDevice physicalDevice,
       pCapabilities->minBitstreamBufferOffsetAlignment = 4096;
       pCapabilities->minBitstreamBufferSizeAlignment = 4096;
 
+      /* VDEnc goes beyond 4K for HEVC, media-driver allows up to 16Kx12K on
+       * Xe2.
+       */
+      if (pdevice->info.verx10 >= 200) {
+         pCapabilities->maxCodedExtent.width = 8192;
+         pCapabilities->maxCodedExtent.height = 8192;
+      }
+
       pCapabilities->maxDpbSlots = ANV_VIDEO_H265_MAX_NUM_REF_FRAME;
       pCapabilities->maxActiveReferencePictures = ANV_VIDEO_H265_MAX_NUM_REF_FRAME;
       pCapabilities->pictureAccessGranularity.width = ANV_MAX_H265_CTB_SIZE;
