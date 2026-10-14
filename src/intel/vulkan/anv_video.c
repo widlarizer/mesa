@@ -222,6 +222,10 @@ video_profile_supported(struct anv_physical_device *pdevice,
 
    case VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR:
    case VK_VIDEO_CODEC_OPERATION_ENCODE_H264_BIT_KHR: {
+      if (profile->videoCodecOperation == VK_VIDEO_CODEC_OPERATION_ENCODE_H264_BIT_KHR &&
+          pdevice->info.verx10 > 125)
+         return VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR;
+
       if (profile->lumaBitDepth != VK_VIDEO_COMPONENT_BIT_DEPTH_8_BIT_KHR)
          return VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR;
       break;
