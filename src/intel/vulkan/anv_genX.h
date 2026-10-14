@@ -625,3 +625,7 @@ genX(anv_get_btd_dispatch_timeout_counter)(uint32_t dispatch_timeout_counter)
 }
 
 uint32_t genX(compute_walker2_get_stack_id_control_value)(const struct anv_device *device);
+
+void genX(video_encode_store_bitstream_size)(struct anv_batch *batch,
+                                             VkVideoCodecOperationFlagsKHR codec,
+                                             struct anv_address dst);

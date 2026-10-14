@@ -5157,19 +5157,37 @@ emit_query_mi_availability(struct mi_builder *b,
 }
 
 
-#if GFX_VER < 11
-#define MFC_BITSTREAM_BYTECOUNT_FRAME_REG       0x128A0
-#define HCP_BITSTREAM_BYTECOUNT_FRAME_REG       0x1E9A0
-#elif GFX_VER >= 11
-#define MFC_BITSTREAM_BYTECOUNT_FRAME_REG       0x1C08A0
-#define HCP_BITSTREAM_BYTECOUNT_FRAME_REG       0x1C28A0
+void
+genX(video_encode_store_bitstream_size)(struct anv_batch *batch,
+                                        VkVideoCodecOperationFlagsKHR codec,
+                                        struct anv_address dst)
+{
+   const bool h264 = codec & VK_VIDEO_CODEC_OPERATION_ENCODE_H264_BIT_KHR;
+
+   /* MFC_BITSTREAM_BYTECOUNT_FRAME / HCP_BITSTREAM_BYTECOUNT_FRAME of the
+    * frame just encoded. From Gfx11 on, read them relative to the engine the
+    * batch runs on: VDBox instances don't share an MMIO base, and on Xe2 they
+    * sit in a separate media GT.
+    */
+   anv_batch_emit(batch, GENX(MI_STORE_REGISTER_MEM), srm) {
+#if GFX_VER >= 11
+      srm.RegisterAddress = h264 ? 0x08A0 : 0x28A0;
+      srm.AddCSMMIOStartOffset = true;
+#else
+      srm.RegisterAddress = h264 ? 0x128A0 : 0x1E9A0;
 #endif
+      srm.MemoryAddress = dst;
+   }
+   anv_batch_emit(batch, GENX(MI_STORE_DATA_IMM), sdi) {
+      sdi.Address = anv_address_add(dst, 4);
+      sdi.ImmediateData = 0;
+   }
+}
 
 static void
 handle_inline_query_end(struct anv_cmd_buffer *cmd_buffer,
                         const VkVideoInlineQueryInfoKHR *inline_query)
 {
-   uint32_t reg_addr;
    struct mi_builder b;
    ANV_FROM_HANDLE(anv_query_pool, pool, inline_query->queryPool);
    if (pool == VK_NULL_HANDLE)
@@ -5183,10 +5201,10 @@ handle_inline_query_end(struct anv_cmd_buffer *cmd_buffer,
    const uint32_t mocs = anv_mocs_for_address(cmd_buffer->device, &query_addr);
    mi_builder_set_mocs(&b, mocs);
 
-   if (pool->codec & VK_VIDEO_CODEC_OPERATION_ENCODE_H264_BIT_KHR) {
-      reg_addr = MFC_BITSTREAM_BYTECOUNT_FRAME_REG;
-   } else if (pool->codec & VK_VIDEO_CODEC_OPERATION_ENCODE_H265_BIT_KHR) {
-      reg_addr = HCP_BITSTREAM_BYTECOUNT_FRAME_REG;
+   if (pool->codec & (VK_VIDEO_CODEC_OPERATION_ENCODE_H264_BIT_KHR |
+                      VK_VIDEO_CODEC_OPERATION_ENCODE_H265_BIT_KHR)) {
+      genX(video_encode_store_bitstream_size)(&cmd_buffer->batch, pool->codec,
+                                              anv_address_add(query_addr, 8));
    } else if (pool->codec & VK_VIDEO_CODEC_OPERATION_ENCODE_AV1_BIT_KHR) {
       /* AV1 BITSTREAM_BYTECOUNT_TILE is per-tile; the frame total (all tiles)
        * is the running sum accumulated into the encode scratch dword. */
@@ -5194,13 +5212,10 @@ handle_inline_query_end(struct anv_cmd_buffer *cmd_buffer,
       struct anv_address tile_bs_accum =
          ANV_VID_MEM_ADDR(vid, ANV_VID_MEM_AV1_ENCODE_TILE_BITSTREAM_ACCUM);
       mi_store(&b, mi_mem64(anv_address_add(query_addr, 8)), mi_mem32(tile_bs_accum));
-      emit_query_mi_availability(&b, query_addr, true);
-      return;
    } else {
       UNREACHABLE("Invalid codec operation");
    }
 
-   mi_store(&b, mi_mem64(anv_address_add(query_addr, 8)), mi_reg32(reg_addr));
    emit_query_mi_availability(&b, query_addr, true);
 }
 
