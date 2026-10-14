@@ -256,6 +256,10 @@ anv_video_emit_vd_control_state(struct anv_cmd_buffer *cmd)
 {
    anv_batch_emit(&cmd->batch, GENX(VD_CONTROL_STATE), v) {
       v.PipelineInitialization = true;
+#if GFX_VER >= 20
+      /* Wa_16021867713 */
+      v.VDBOXPipelineArchitectureClockgateDisable = true;
+#endif
    }
 }
 #endif
