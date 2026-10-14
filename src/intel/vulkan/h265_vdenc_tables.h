@@ -372,6 +372,135 @@ static const uint32_t h265_vdenc_hevc_tile_slice_params[3][10][11] = {
       { 768, 128, 64, 8, 128, 1, 128, 4, 32, 0, 4 },
    },
 };
+
+#if GFX_VER >= 20
+/* Xe2 VDEnc HEVC settings for target usage 4, taken from media-driver
+ * (EncodeHevcVdencConstSettings and its Xe2_HPM overrides).
+ *
+ * Unlike Gen125, CMD1 parameters 8 to 15 are 4-entry arrays: entry 0 lives
+ * in DW10/DW11 like before and entries 1 to 3 in the new DW33 to DW38.
+ */
+static const uint8_t hevc_vdenc_cmd1_par8_15_xe2[8][4] = {
+   { 11, 14, 15, 17 },
+   { 14, 17, 18, 19 },
+   { 14, 17, 18, 19 },
+   { 20, 23, 24, 25 },
+   { 23, 26, 27, 29 },
+   { 26, 29, 30, 31 },
+   { 26, 29, 30, 31 },
+   { 38, 41, 42, 43 },
+};
+
+/* Indexed by is_intra ? 0 : 1 */
+static const uint8_t hevc_vdenc_cmd1_par16_21_xe2[2][6] = {
+   { 92, 23, 92, 21, 23, 0 },
+   { 110, 26, 110, 24, 26, 0 },
+};
+
+static const uint8_t hevc_vdenc_cmd1_par23_xe2[2] = { 42, 54 };
+
+static const uint8_t hevc_vdenc_cmd1_par36_41_xe2[2][6] = {
+   { 21, 47, 16, 16, 30, 30 },
+   { 7, 20, 20, 20, 30, 68 },
+};
+
+static const uint8_t hevc_vdenc_cmd1_par87_89_xe2[2][3] = {
+   { 16, 16, 47 },
+   { 20, 20, 20 },
+};
+
+#define HEVC_VDENC_CMD1_PAR95_XE2 50
+
+/* Indexed by [picture type][target usage][low delay]. */
+static const uint32_t hevc_vdenc_cmd2_dw8_xe2[3][8][2] = {
+   {
+      { 0x54555555, 0x00000000 },
+      { 0x54555555, 0x00000000 },
+      { 0x54555555, 0x00000000 },
+      { 0x54555555, 0x00000000 },
+      { 0x54555555, 0x00000000 },
+      { 0x54555555, 0x00000000 },
+      { 0x54555555, 0x00000000 },
+      { 0x54555555, 0x00000000 },
+   },
+   {
+      { 0x54555555, 0x00000000 },
+      { 0x90908090, 0x90908090 },
+      { 0xfffdccaa, 0xfffdccaa },
+      { 0x54555555, 0x00000000 },
+      { 0x55550000, 0x55550000 },
+      { 0x54555555, 0x00000000 },
+      { 0x55550000, 0x55550000 },
+      { 0x55550000, 0x55550000 },
+   },
+   {
+      { 0x54555555, 0x00000000 },
+      { 0x90908090, 0x90908090 },
+      { 0xfffdfcaa, 0xfffdfcaa },
+      { 0x54555555, 0x00000000 },
+      { 0x55550000, 0x55550000 },
+      { 0x54555555, 0x00000000 },
+      { 0x55550000, 0x55550000 },
+      { 0x55550000, 0x55550000 },
+   },
+};
+
+/* Indexed by [picture type][target usage][low delay]. */
+static const uint32_t hevc_vdenc_cmd2_dw9_xe2[3][8][2] = {
+   {
+      { 0xc45555, 0xc40000 },
+      { 0xc45555, 0xc40000 },
+      { 0x845555, 0x840000 },
+      { 0x835555, 0x830000 },
+      { 0x835555, 0x830000 },
+      { 0x835555, 0x830000 },
+      { 0x635555, 0x630000 },
+      { 0x325555, 0x320000 },
+   },
+   {
+      { 0xc45555, 0xc40000 },
+      { 0xc461e4, 0xc461e4 },
+      { 0x84ffff, 0x84ffff },
+      { 0x835555, 0x830000 },
+      { 0x830000, 0x830000 },
+      { 0x835555, 0x830000 },
+      { 0x630000, 0x630000 },
+      { 0x320000, 0x320000 },
+   },
+   {
+      { 0xc45555, 0xc40000 },
+      { 0xc461e4, 0xc461e4 },
+      { 0x84fcff, 0x84fcff },
+      { 0x835555, 0x830000 },
+      { 0x830000, 0x830000 },
+      { 0x835555, 0x830000 },
+      { 0x630000, 0x630000 },
+      { 0x320000, 0x320000 },
+   },
+};
+
+/* Indexed by target usage. */
+static const uint32_t hevc_vdenc_cmd2_dw51_xe2[8] = {
+   0x33430aa0, 0x33430952, 0x03431552, 0x22223552,
+   0x22223552, 0x22223552, 0x22227152, 0x12127006,
+};
+
+static const uint32_t hevc_vdenc_cmd2_dw52_xe2[8] = {
+   0x077fdb5b, 0x077f5b5b, 0x077f5bdb, 0x072d5959,
+   0x072d5959, 0x072d5959, 0x0929595a, 0x09294a5a,
+};
+
+static const uint32_t hevc_vdenc_cmd2_dw53_xe2[8] = {
+   0x0000ffff, 0x0000ffff, 0xffffffff, 0xff000000,
+   0xff000000, 0xff000000, 0x80000000, 0x00008000,
+};
+
+/* 4:2:0 only. */
+static const uint32_t hevc_vdenc_cmd2_dw54_xe2[8] = {
+   0x010080c0, 0x010080c0, 0x01008000, 0xc5008000,
+   0xc5008000, 0x85008000, 0xbd008004, 0xbd00800c,
+};
+#endif /* GFX_VER >= 20 */
 #endif /* GFX_VERx10 >= 125 */
 
 #endif
