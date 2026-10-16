@@ -81,6 +81,9 @@ genX(CmdControlVideoCodingKHR)(VkCommandBuffer commandBuffer,
       struct anv_video_session *vid = cmd_buffer->video.vid;
       struct anv_video_rc_state *rc = &vid->rc;
 
+      const struct anv_video_rc_state old_rc = *rc;
+      const VkVideoEncodeRateControlModeFlagBitsKHR old_rc_mode = vid->rc_mode;
+
       vid->rc_mode = rate_control_info->rateControlMode;
 
       if (rate_control_info->layerCount > 0) {
@@ -130,6 +133,25 @@ genX(CmdControlVideoCodingKHR)(VkCommandBuffer commandBuffer,
          rc->consecutive_b_frames = h264_rc->consecutiveBFrameCount;
          rc->rc_flags = h264_rc->flags;
       }
+
+      /* The HuC BRC only picks up the rate control parameters in its init
+       * pass, which runs when frame_counter is 0. Apps change the bitrate
+       * mid-stream with a RATE_CONTROL update without RESET, so re-init the
+       * BRC whenever the parameters actually changed.
+       */
+      if (vid->rc_mode != old_rc_mode ||
+          rc->average_bitrate != old_rc.average_bitrate ||
+          rc->max_bitrate != old_rc.max_bitrate ||
+          rc->frame_rate_num != old_rc.frame_rate_num ||
+          rc->frame_rate_den != old_rc.frame_rate_den ||
+          rc->vbv_size_bits != old_rc.vbv_size_bits ||
+          rc->vbv_initial_fullness_bits != old_rc.vbv_initial_fullness_bits ||
+          rc->min_qp != old_rc.min_qp ||
+          rc->max_qp != old_rc.max_qp ||
+          rc->gop_frame_count != old_rc.gop_frame_count ||
+          rc->idr_period != old_rc.idr_period ||
+          rc->consecutive_b_frames != old_rc.consecutive_b_frames)
+         rc->frame_counter = 0;
    }
 }
 
