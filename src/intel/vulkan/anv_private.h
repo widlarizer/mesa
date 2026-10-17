@@ -7006,6 +7006,7 @@ struct anv_vid_mem {
 #define ANV_VIDEO_H264_MAX_NUM_REF_FRAME 16
 #define ANV_VIDEO_H265_MAX_NUM_REF_FRAME 16
 #define ANV_VIDEO_H265_HCP_NUM_REF_FRAME 8
+#define ANV_H265_ENCODE_QUALITY_LEVELS 3
 #define ANV_MAX_H265_CTB_SIZE 64
 #define ANV_MAX_VP9_CTB_SIZE 64
 #define ANV_VP9_SCALE_FACTOR_SHIFT 14
@@ -7213,6 +7214,7 @@ struct anv_video_session {
 
    bool cdf_initialized;
    VkVideoEncodeRateControlModeFlagBitsKHR rc_mode;
+   uint32_t quality_level;
    struct anv_video_rc_state rc;
 
    /* the decoder needs some private memory allocations */

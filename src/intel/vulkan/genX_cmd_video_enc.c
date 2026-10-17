@@ -2102,6 +2102,15 @@ anv_h265_frame_info(const VkVideoEncodeInfoKHR *enc_info)
    return vk_find_struct_const(enc_info->pNext, VIDEO_ENCODE_H265_PICTURE_INFO_KHR);
 }
 
+static uint32_t
+anv_h265_target_usage(const struct anv_cmd_buffer *cmd)
+{
+   static const uint8_t target_usage[ANV_H265_ENCODE_QUALITY_LEVELS] = { 7, 4, 1 };
+
+   return target_usage[MIN2(cmd->video.vid->quality_level,
+                            ANV_H265_ENCODE_QUALITY_LEVELS - 1)];
+}
+
 static const StdVideoH265VideoParameterSet *
 anv_h265_vps(struct anv_cmd_buffer *cmd, const VkVideoEncodeInfoKHR *enc_info)
 {
@@ -3048,17 +3057,16 @@ anv_h265_emit_vdenc_cmd2(struct anv_cmd_buffer *cmd,
 #endif
 
 #if GFX_VERx10 >= 125
-      /* Target usage is fixed to 4. The last two lookup indices are
-       * pps_curr_pic_ref_enabled_flag, which is not supported here, and
-       * Wa_22011549751, which is in effect and also decides the intra
-       * reference indices below.
+      /* Target usage comes from the quality level. The last two lookup
+       * indices are pps_curr_pic_ref_enabled_flag, which is not supported
+       * here, and Wa_22011549751, which is in effect and also decides the
+       * intra reference indices below.
        *
-       * TODO: Target usage from the quality level;
-       * poc from the ref structure for hierarchical B;
+       * TODO: poc from the ref structure for hierarchical B;
        * port the dw51/dw53 LUTs; derive data[19]/data[23] for inter.
        */
       uint32_t pic_type = anv_vdenc_h265_picture_type(frame_info->pStdPictureInfo->pic_type);
-      uint32_t target_usage = 4;
+      uint32_t target_usage = anv_h265_target_usage(cmd);
       uint32_t low_delay = is_low_delay;
       uint32_t num_l0_is0 = pic_type == 0 ? 1 : (ref_lists->num_ref_idx_l0_active_minus1 == 0);
 
@@ -3148,8 +3156,7 @@ anv_h265_emit_vdenc_cmd2(struct anv_cmd_buffer *cmd,
       }
 #else
       uint32_t pic_type = anv_vdenc_h265_picture_type(frame_info->pStdPictureInfo->pic_type);
-      /* TODO: target usage is fixed to 4 ("Normal mode"). */
-      uint32_t target_usage = 4;
+      uint32_t target_usage = anv_h265_target_usage(cmd);
 
       /* TODO Hierarchy-dependent rounding offsets. */
       uint32_t round_intra = 10;
