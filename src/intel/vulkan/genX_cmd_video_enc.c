@@ -3477,6 +3477,7 @@ anv_h265_emit_hcp_slice_state(struct anv_cmd_buffer *cmd,
    const StdVideoH265PictureParameterSet *pps = anv_h265_pps(cmd, enc_info);
    const VkVideoEncodeH265NaluSliceSegmentInfoKHR *nalu = &frame_info->pNaluSliceSegmentEntries[slice_id];
    const StdVideoEncodeH265SliceSegmentHeader *slice_header = nalu->pStdSliceSegmentHeader;
+   const StdVideoEncodeH265ReferenceListsInfo *ref_lists = frame_info->pStdPictureInfo->pRefLists;
 
    bool is_last = (slice_id == frame_info->naluSliceSegmentEntryCount - 1);
    uint32_t slice_type = slice_header->slice_type % 5;
@@ -3531,7 +3532,13 @@ anv_h265_emit_hcp_slice_state(struct anv_cmd_buffer *cmd,
       slice.CABACInit = slice_header->flags.cabac_init_flag;
       slice.MaxMergeIndex = slice_header->MaxNumMergeCand - 1;
 
-      slice.CollocatedMVTemporalBufferIndex = dpb_idx[slice_header->collocated_ref_idx];
+      if (slice_type != STD_VIDEO_H265_SLICE_TYPE_I && ref_lists) {
+         const uint8_t col_slot = slice_header->flags.collocated_from_l0_flag ?
+            ref_lists->RefPicList0[slice_header->collocated_ref_idx] :
+            ref_lists->RefPicList1[slice_header->collocated_ref_idx];
+         if (col_slot < ANV_VIDEO_H265_MAX_NUM_REF_FRAME)
+            slice.CollocatedMVTemporalBufferIndex = dpb_idx[col_slot];
+      }
       assert(slice.CollocatedMVTemporalBufferIndex < ANV_VIDEO_H265_HCP_NUM_REF_FRAME);
 
       /* For VDEnc mode */
