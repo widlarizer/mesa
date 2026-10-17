@@ -1425,6 +1425,18 @@ anv_h265_brc_fill_init_dmem(struct anv_cmd_buffer *cmd,
    dmem->LongTermRefMsdk_U8 = 1;
 }
 
+static uint32_t
+anv_h265_brc_num_passes(const struct anv_video_session *vid)
+{
+   switch (vid->vk.enc_usage.tuning_mode) {
+   case VK_VIDEO_ENCODE_TUNING_MODE_LOW_LATENCY_KHR:
+   case VK_VIDEO_ENCODE_TUNING_MODE_ULTRA_LOW_LATENCY_KHR:
+      return 1;
+   default:
+      return 2;
+   }
+}
+
 static void
 anv_h265_brc_fill_update_dmem(struct anv_cmd_buffer *cmd,
                               const VkVideoEncodeH265PictureInfoKHR *frame_info,
@@ -1470,7 +1482,7 @@ anv_h265_brc_fill_update_dmem(struct anv_cmd_buffer *cmd,
    }
    dmem->Num_Slices = layout->num_slices;
    dmem->CQP_QPValue_U8 = frame_qp;
-   dmem->MaxNumPass_U8 = 2;
+   dmem->MaxNumPass_U8 = anv_h265_brc_num_passes(vid);
    dmem->SceneChgPrevIntraPctThreshold_U8 = 96;
    dmem->SceneChgCurIntraPctThreshold_U8 = 192;
    dmem->IPAverageCoeff_U8 = 64;

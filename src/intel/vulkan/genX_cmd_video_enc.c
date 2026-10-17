@@ -3850,7 +3850,7 @@ anv_h265_encode_video(struct anv_cmd_buffer *cmd, const VkVideoEncodeInfoKHR *en
       /* TODO: weighted prediction is not included into the BRC SLB yet */
       assert(!pps->flags.weighted_pred_flag && !pps->flags.weighted_bipred_flag);
 
-      num_passes = 2;
+      num_passes = anv_h265_brc_num_passes(vid);
       brc_frame_qp =
          anv_video_encode_quantizer(vid,
                                     frame_info->pNaluSliceSegmentEntries[0].constantQp,
