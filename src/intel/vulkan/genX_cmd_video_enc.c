@@ -2066,7 +2066,7 @@ scaling_list(struct anv_cmd_buffer *cmd_buffer,
    }
 }
 
-static uint16_t
+static uint32_t
 lcu_max_bits_size_allowed(const StdVideoH265SequenceParameterSet *sps)
 {
    uint16_t log2_max_coding_block_size =
@@ -2092,7 +2092,7 @@ lcu_max_bits_size_allowed(const StdVideoH265SequenceParameterSet *sps)
    raw_ctu_bits = raw_ctu_bits * (sps->bit_depth_luma_minus8 + 8);
    raw_ctu_bits = (5 * raw_ctu_bits / 3);
 
-   return raw_ctu_bits & 0xffff;
+   return raw_ctu_bits;
 }
 
 #if GFX_VER >= 12
@@ -3004,7 +3004,11 @@ anv_h265_emit_hcp_pic_state(struct anv_cmd_buffer *cmd,
       pic.ChromaBitDepth = sps->bit_depth_chroma_minus8;
       pic.LumaBitDepth = sps->bit_depth_luma_minus8;
 
-      pic.LCUMaxBitSizeAllowed = lcu_max_bits_size_allowed(sps);
+      const uint32_t lcu_max_bits = lcu_max_bits_size_allowed(sps);
+      pic.LCUMaxBitSizeAllowed = lcu_max_bits & 0xffff;
+#if GFX_VERx10 >= 125
+      pic.LCUMaxBitSizeAllowedMSB = (lcu_max_bits >> 16) & 0x3;
+#endif
       pic.CbQPOffsetList0 = pps->cb_qp_offset_list[0];
       pic.CbQPOffsetList1 = pps->cb_qp_offset_list[1];
       pic.CbQPOffsetList2 = pps->cb_qp_offset_list[2];
