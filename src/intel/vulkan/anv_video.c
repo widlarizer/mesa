@@ -450,7 +450,9 @@ anv_GetPhysicalDeviceVideoCapabilitiesKHR(VkPhysicalDevice physicalDevice,
       }
 
       enc_caps->maxRateControlLayers = 1;
-      enc_caps->maxQualityLevels = 1;
+      enc_caps->maxQualityLevels =
+         pVideoProfile->videoCodecOperation == VK_VIDEO_CODEC_OPERATION_ENCODE_H265_BIT_KHR ?
+         ANV_H265_ENCODE_QUALITY_LEVELS : 1;
       enc_caps->encodeInputPictureGranularity.width = 32;
       enc_caps->encodeInputPictureGranularity.height = 32;
       enc_caps->supportedEncodeFeedbackFlags =

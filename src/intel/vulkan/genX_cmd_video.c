@@ -98,6 +98,15 @@ genX(CmdControlVideoCodingKHR)(VkCommandBuffer commandBuffer,
       struct anv_video_session *vid = cmd_buffer->video.vid;
       vid->rc_mode = VK_VIDEO_ENCODE_RATE_CONTROL_MODE_DEFAULT_KHR;
       memset(&vid->rc, 0, sizeof(vid->rc));
+      vid->quality_level = 0;
+   }
+
+   if (pCodingControlInfo->flags & VK_VIDEO_CODING_CONTROL_ENCODE_QUALITY_LEVEL_BIT_KHR) {
+      const VkVideoEncodeQualityLevelInfoKHR *quality_info =
+         vk_find_struct_const(pCodingControlInfo->pNext, VIDEO_ENCODE_QUALITY_LEVEL_INFO_KHR);
+
+      if (quality_info)
+         cmd_buffer->video.vid->quality_level = quality_info->qualityLevel;
    }
 
    if (pCodingControlInfo->flags &  VK_VIDEO_CODING_CONTROL_ENCODE_RATE_CONTROL_BIT_KHR) {
