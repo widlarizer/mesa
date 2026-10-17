@@ -2455,6 +2455,12 @@ anv_h265_emit_hcp_ind_obj_base_addr_state(struct anv_cmd_buffer *cmd,
             anv_address_add(dst_buffer->address, align(enc_info->dstBufferOffset, 4096));
       indirect.HCPPAKBSEObjectAddressAttributes =
          ANV_VID_ATTR(cmd->device, indirect.HCPPAKBSEObjectBaseAddress.bo);
+      /* TODO: report VK_QUERY_RESULT_STATUS_INSUFFICIENT_BITSTREAM_BUFFER_RANGE_KHR */
+      struct anv_address bse_end =
+         anv_address_add(dst_buffer->address,
+                         enc_info->dstBufferOffset + enc_info->dstBufferRange);
+      bse_end.offset = ROUND_DOWN_TO(bse_end.offset, 4096);
+      indirect.HCPPAKBSEObjectAccessUpperBound = bse_end;
 
       indirect.HCPVP9PAKCompressedHeaderSyntaxStreamInAddressAttributes =
          ANV_VID_ATTR(cmd->device, NULL);
