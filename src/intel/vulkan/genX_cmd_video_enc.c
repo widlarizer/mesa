@@ -37,6 +37,16 @@
 #include "genX_huc_brc.h"
 #endif
 
+static struct anv_address
+anv_video_encode_dst_end(const VkVideoEncodeInfoKHR *enc_info)
+{
+   ANV_FROM_HANDLE(anv_buffer, dst_buffer, enc_info->dstBuffer);
+   VkDeviceSize end = enc_info->dstBufferRange ?
+      enc_info->dstBufferOffset + enc_info->dstBufferRange : dst_buffer->vk.size;
+
+   return anv_address_align_down(anv_address_add(dst_buffer->address, end), 4096);
+}
+
 static int
 anv_get_max_vmv_range(StdVideoH264LevelIdc level)
 {
@@ -858,6 +868,8 @@ anv_h264_emit_mfx_ind_obj_base_addr_state(struct anv_cmd_buffer *cmd,
       index_obj.MFCIndirectPAKBSEObjectAttributes =
          ANV_VID_ATTR(cmd->device,
                       index_obj.MFCIndirectPAKBSEObjectAddress.bo);
+      index_obj.MFCIndirectPAKBSEObjectUpperBound =
+         anv_video_encode_dst_end(enc_info);
    }
 }
 
@@ -2492,6 +2504,8 @@ anv_h265_emit_hcp_ind_obj_base_addr_state(struct anv_cmd_buffer *cmd,
             anv_address_add(dst_buffer->address, align(enc_info->dstBufferOffset, 4096));
       indirect.HCPPAKBSEObjectAddressAttributes =
          ANV_VID_ATTR(cmd->device, indirect.HCPPAKBSEObjectBaseAddress.bo);
+      indirect.HCPPAKBSEObjectAccessUpperBound =
+         anv_video_encode_dst_end(enc_info);
 
       indirect.HCPVP9PAKCompressedHeaderSyntaxStreamInAddressAttributes =
          ANV_VID_ATTR(cmd->device, NULL);
@@ -4593,6 +4607,8 @@ anv_av1_encode_video(struct anv_cmd_buffer *cmd, const VkVideoEncodeInfoKHR *enc
 
          ind.AVPIndirectBitstreamObjectAddressAttributes =
             ANV_VID_ATTR(cmd->device, dst_buffer->address.bo);
+         ind.AVPIndirectBitstreamObjectAccessUpperBound =
+            anv_video_encode_dst_end(enc_info);
 
          ind.AVPIndirectCUObjectMemoryAddressAttributes =
             ANV_VID_ATTR(cmd->device, NULL);
